@@ -306,9 +306,9 @@ sqlscribe/
 
 ---
 
-## 👥 Team & Contributors
+## 👥 Collaborators
 
-Meet the creators and contributors behind **SQLscribe**:
+Meet the collaborators behind **SQLscribe**:
 
 - 👩‍💻 **Priyanshi Choudhary** — [@Priyanshi0907](https://github.com/Priyanshi0907)
 - 👩‍💻 **Khushi Sharma** — [Khushi Sharma](https://github.com/KhushiSharma)
