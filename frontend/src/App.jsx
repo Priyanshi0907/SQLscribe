@@ -85,7 +85,7 @@ export default function App() {
 
   const loadHistory = useCallback(() => {
     if (!source) return;
-    fetchHistory(10)
+    fetchHistory(10, source.name)
       .then((data) => setHistory(data.history))
       .catch(() => {
         // history is a nice-to-have panel; a failed fetch shouldn't block the app
@@ -95,6 +95,7 @@ export default function App() {
   useEffect(() => {
     loadHistory();
   }, [loadHistory]);
+
 
   async function handleRun(question) {
     setLoading(true);
@@ -177,13 +178,14 @@ export default function App() {
 
   async function handleClearHistory() {
     try {
-      await apiClearHistory();
+      await apiClearHistory(source?.name);
       setHistory([]);
       showToast("History cleared.", "success");
     } catch (err) {
       if (err.status === 401) handleSessionExpired();
     }
   }
+
 
   function handleAuthenticated(name) {
     setFreshAuth(true);
@@ -298,6 +300,7 @@ export default function App() {
 
               {activeView === "history" && (
                 <HistoryView
+                  dbName={source?.name}
                   onSelect={handleViewHistoryItem}
                   onDelete={handleDeleteHistoryItem}
                   onToggleFavorite={handleToggleFavorite}

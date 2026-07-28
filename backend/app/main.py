@@ -12,7 +12,20 @@ from . import auth, history, sources
 from .llm import generate_sql
 from .sql_guard import SQLValidationError, validate_sql
 
-app = FastAPI(title="SQLscribe API", version="1.0.0")
+from contextlib import asynccontextmanager
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    auth.init_auth_db()
+    # History is always available regardless of which data source (if any)
+    # is active. The data source itself is NOT auto-connected here — the
+    # user picks one after signing in.
+    history.init_history_db()
+    yield
+
+
+app = FastAPI(title="SQLscribe API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -50,13 +63,13 @@ def _dedupe_columns(columns: list[str]) -> list[str]:
     return result
 
 
-@app.on_event("startup")
-def on_startup():
-    auth.init_auth_db()
-    # History is always available regardless of which data source (if any)
-    # is active. The data source itself is NOT auto-connected here — the
-    # user picks one after signing in.
-    history.init_history_db()
+@app.get("/")
+def root():
+    return {
+        "message": "SQLscribe API is running",
+        "docs": "/docs",
+        "health": "/api/health",
+    }
 
 
 @app.get("/api/health")
@@ -290,8 +303,9 @@ def run_query(req: QueryRequest, current_user: str = Depends(auth.require_auth))
 
     elapsed_ms = int((time.perf_counter() - start) * 1000)
     dialect_display = DIALECT_DISPLAY_NAMES.get(dialect, "SQLite")
+    source_name = sources.get_source_info().get("name", "")
 
-    history.record(question, safe_sql, dialect_display, columns, rows, len(rows), elapsed_ms)
+    history.record(question, safe_sql, dialect_display, columns, rows, len(rows), elapsed_ms, database_name=source_name)
 
     return QueryResponse(
         sql=safe_sql,
@@ -307,8 +321,10 @@ def run_query(req: QueryRequest, current_user: str = Depends(auth.require_auth))
 
 
 @app.get("/api/history")
-def get_history(limit: int = 10, current_user: str = Depends(auth.require_auth)):
-    return {"history": history.recent(limit)}
+def get_history(limit: int = 10, database_name: str | None = None, current_user: str = Depends(auth.require_auth)):
+    if not database_name and sources.is_connected():
+        database_name = sources.get_source_info().get("name")
+    return {"history": history.recent(limit=limit, database_name=database_name)}
 
 
 class FavoriteRequest(BaseModel):
@@ -319,21 +335,20 @@ class FavoriteRequest(BaseModel):
 def set_history_favorite(
     entry_id: int, req: FavoriteRequest, current_user: str = Depends(auth.require_auth)
 ):
-    updated = history.set_favorite(entry_id, req.is_favorite)
-    if not updated:
-        raise HTTPException(status_code=404, detail="History entry not found.")
+    history.set_favorite(entry_id, req.is_favorite)
     return {"ok": True, "is_favorite": req.is_favorite}
 
 
 @app.delete("/api/history/{entry_id}")
 def delete_history_entry(entry_id: int, current_user: str = Depends(auth.require_auth)):
-    deleted = history.delete_entry(entry_id)
-    if not deleted:
-        raise HTTPException(status_code=404, detail="History entry not found.")
+    history.delete_entry(entry_id)
     return {"ok": True}
 
 
+
 @app.delete("/api/history")
-def clear_history(current_user: str = Depends(auth.require_auth)):
-    history.clear_all()
+def clear_history(database_name: str | None = None, current_user: str = Depends(auth.require_auth)):
+    if not database_name and sources.is_connected():
+        database_name = sources.get_source_info().get("name")
+    history.clear_all(database_name=database_name)
     return {"ok": True}

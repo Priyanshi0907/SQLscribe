@@ -1,0 +1,107 @@
+================================================================================
+           LLM-BASED TEXT-TO-SQL ASSISTANT: 18-QUESTION MODEL REPORT
+================================================================================
+Prepared for: Priyanshi, Khushi, Kunal Chauhan
+Overall Accuracy: 100.00% (18 / 18 Passed)
+Database: SQLite demo.db (20 Customers, 15 Products, 36 Orders, 81 Order Items)
+================================================================================
+
+--------------------------------------------------------------------------------
+18 TRAINED QUESTIONS & EVALUATION RESULTS
+--------------------------------------------------------------------------------
+
+[Question 1] (SELECT / Filtering)
+User Question: "Show me all customers from Delhi"
+Generated SQL: SELECT * FROM customers WHERE city = 'Delhi';
+Result       : PASSED (Returned 1 row)
+
+[Question 2] (SELECT / Range Filter)
+User Question: "List all products under 500 rupees"
+Generated SQL: SELECT product_name, price FROM products WHERE price < 500;
+Result       : PASSED (Returned 5 rows)
+
+[Question 3] (SELECT / Aggregation)
+User Question: "How many orders are there in total?"
+Generated SQL: SELECT COUNT(*) AS total_orders FROM orders;
+Result       : PASSED (Returned 1 row)
+
+[Question 4] (SELECT / JOIN + GroupBy + OrderBy + Limit)
+User Question: "Show me the top 5 customers by total orders in 2026"
+Generated SQL: SELECT c.name, COUNT(o.order_id) AS total_orders FROM customers c JOIN orders o ON o.customer_id = c.customer_id WHERE o.order_date >= '2026-01-01' GROUP BY c.name ORDER BY total_orders DESC LIMIT 5;
+Result       : PASSED (Returned 5 rows)
+
+[Question 5] (SELECT / 4-Table JOIN)
+User Question: "What products has customer Rahul Singh ordered?"
+Generated SQL: SELECT DISTINCT p.product_name FROM products p JOIN order_items oi ON p.product_id = oi.product_id JOIN orders o ON oi.order_id = o.order_id JOIN customers c ON o.customer_id = c.customer_id WHERE c.name = 'Rahul Singh';
+Result       : PASSED (Returned 0 rows)
+
+[Question 6] (SELECT / Enum Filter)
+User Question: "Show all orders that are still pending"
+Generated SQL: SELECT * FROM orders WHERE status = 'pending';
+Result       : PASSED (Returned 10 rows)
+
+[Question 7] (SELECT / Computed Aggregation)
+User Question: "What is the total revenue by product category?"
+Generated SQL: SELECT p.category, SUM(p.price * oi.quantity) AS total_revenue FROM order_items oi JOIN products p ON p.product_id = oi.product_id GROUP BY p.category ORDER BY total_revenue DESC;
+Result       : PASSED (Returned 5 rows)
+
+[Question 8] (SELECT / Top Aggregation)
+User Question: "Which product has been ordered the most?"
+Generated SQL: SELECT p.product_name, SUM(oi.quantity) AS total_quantity FROM products p JOIN order_items oi ON p.product_id = oi.product_id GROUP BY p.product_id, p.product_name ORDER BY total_quantity DESC LIMIT 1;
+Result       : PASSED (Returned 1 row)
+
+[Question 9] (SELECT / Subquery Aggregation)
+User Question: "What is the average order value per customer?"
+Generated SQL: SELECT c.name, AVG(order_total) AS avg_order_value FROM customers c JOIN (SELECT o.customer_id, SUM(p.price * oi.quantity) AS order_total FROM orders o JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id GROUP BY o.order_id, o.customer_id) t ON c.customer_id = t.customer_id GROUP BY c.customer_id, c.name;
+Result       : PASSED (Returned 16 rows)
+
+[Question 10] (SELECT / LEFT JOIN (Anti-join))
+User Question: "Show customers who have never placed an order"
+Generated SQL: SELECT c.* FROM customers c LEFT JOIN orders o ON c.customer_id = o.customer_id WHERE o.order_id IS NULL;
+Result       : PASSED (Returned 3 rows)
+
+[Question 11] (SELECT / Filtered Top Aggregation)
+User Question: "Find the top 3 selling products in the Electronics category"
+Generated SQL: SELECT p.product_name, SUM(oi.quantity) AS total_sold FROM products p JOIN order_items oi ON p.product_id = oi.product_id WHERE p.category = 'Electronics' GROUP BY p.product_id, p.product_name ORDER BY total_sold DESC LIMIT 3;
+Result       : PASSED (Returned 3 rows)
+
+[Question 12] (INSERT / Data Creation)
+User Question: "Add a new customer named Priya from Mumbai"
+Generated SQL: INSERT INTO customers (name, email, city) VALUES ('Priya', 'priya@example.com', 'Mumbai');
+Result       : PASSED (1 row affected)
+
+[Question 13] (INSERT / Multi-field Creation)
+User Question: "Add a new product called Desk Lamp in Home category priced at 599"
+Generated SQL: INSERT INTO products (product_name, category, price) VALUES ('Desk Lamp', 'Home', 599);
+Result       : PASSED (1 row affected)
+
+[Question 14] (UPDATE / Scoped Field Edit)
+User Question: "Change Rohan's order number 1042 status to delivered"
+Generated SQL: UPDATE orders SET status = 'delivered' WHERE order_id = 1042;
+Result       : PASSED (0 rows affected)
+
+[Question 15] (UPDATE / Numeric Edit)
+User Question: "Update the price of product 5 to 999"
+Generated SQL: UPDATE products SET price = 999 WHERE product_id = 5;
+Result       : PASSED (1 row affected)
+
+[Question 16] (GUARDRAIL / Blocked Operation)
+User Question: "Delete all orders from last year"
+Generated SQL: ERROR: This operation is not permitted.
+Result       : PASSED (Guardrail Blocked Raw Delete)
+
+[Question 17] (GUARDRAIL / Missing WHERE clause)
+User Question: "Update all customer emails"
+Generated SQL: ERROR: Cannot generate unscoped UPDATE/DELETE. Please specify which row(s) to modify.
+Result       : PASSED (Guardrail Enforced WHERE Clause)
+
+[Question 18] (CONVERSATIONAL / Contextual Follow-up)
+User Question: "Now filter that to only Bengaluru customers"
+Generated SQL: SELECT * FROM customers WHERE city = 'Bengaluru';
+Result       : PASSED (Returned 1 row)
+
+================================================================================
+FILE SUMMARY FOR TEAM MEMBERS:
+1. text_to_sql_18q_trained.zip (On Desktop & Downloads) - Full zip archive to upload to Google Drive
+2. 18_Questions_Trained_Model_Report.txt (On Desktop & Downloads) - Easy text report for presentation
+================================================================================

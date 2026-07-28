@@ -159,8 +159,12 @@ export async function runQuery(question) {
   return handleResponse(res);
 }
 
-export async function fetchHistory(limit = 10) {
-  const res = await fetch(`${API_BASE}/api/history?limit=${limit}`, { headers: authHeaders() });
+export async function fetchHistory(limit = 10, databaseName = null) {
+  let url = `${API_BASE}/api/history?limit=${limit}`;
+  if (databaseName) {
+    url += `&database_name=${encodeURIComponent(databaseName)}`;
+  }
+  const res = await fetch(url, { headers: authHeaders() });
   return handleResponse(res);
 }
 
@@ -181,8 +185,12 @@ export async function deleteHistoryEntry(id) {
   return handleResponse(res);
 }
 
-export async function clearHistory() {
-  const res = await fetch(`${API_BASE}/api/history`, {
+export async function clearHistory(databaseName = null) {
+  let url = `${API_BASE}/api/history`;
+  if (databaseName) {
+    url += `?database_name=${encodeURIComponent(databaseName)}`;
+  }
+  const res = await fetch(url, {
     method: "DELETE",
     headers: authHeaders(),
   });

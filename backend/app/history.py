@@ -31,7 +31,8 @@ CREATE TABLE IF NOT EXISTS query_history (
     row_count     INTEGER NOT NULL,
     elapsed_ms    INTEGER NOT NULL,
     is_favorite   INTEGER NOT NULL DEFAULT 0,
-    created_at    TEXT NOT NULL
+    created_at    TEXT NOT NULL,
+    database_name TEXT NOT NULL DEFAULT ''
 );
 """
 
@@ -43,6 +44,7 @@ _MIGRATION_COLUMNS = [
     ("columns_json", "TEXT NOT NULL DEFAULT '[]'"),
     ("rows_json", "TEXT NOT NULL DEFAULT '[]'"),
     ("is_favorite", "INTEGER NOT NULL DEFAULT 0"),
+    ("database_name", "TEXT NOT NULL DEFAULT ''"),
 ]
 
 
@@ -55,6 +57,8 @@ def init_history_db() -> None:
             conn.execute(f"ALTER TABLE query_history ADD COLUMN {name} {coltype}")
         except sqlite3.OperationalError:
             pass  # column already exists — fine
+    # Set default database_name for legacy history records if empty
+    conn.execute("UPDATE query_history SET database_name = 'RetailDB' WHERE database_name IS NULL OR database_name = ''")
     conn.commit()
     conn.close()
 
@@ -63,16 +67,18 @@ def record(
     question: str, sql_text: str, dialect: str,
     columns: list[str], rows: list[dict],
     row_count: int, elapsed_ms: int,
+    database_name: str = "",
 ) -> int:
     conn = sqlite3.connect(HISTORY_DB_PATH)
     cur = conn.execute(
         "INSERT INTO query_history "
-        "(question, sql_text, dialect, columns_json, rows_json, row_count, elapsed_ms, created_at) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "(question, sql_text, dialect, columns_json, rows_json, row_count, elapsed_ms, created_at, database_name) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
             question, sql_text, dialect,
             json.dumps(columns), json.dumps(rows, default=str),
             row_count, elapsed_ms, datetime.now(timezone.utc).isoformat(),
+            database_name,
         ),
     )
     conn.commit()
@@ -81,15 +87,23 @@ def record(
     return new_id
 
 
-def recent(limit: int = 10) -> list[dict]:
+def recent(limit: int = 10, database_name: str | None = None) -> list[dict]:
     conn = sqlite3.connect(HISTORY_DB_PATH)
     conn.row_factory = sqlite3.Row
-    rows = conn.execute(
-        "SELECT id, question, sql_text, dialect, columns_json, rows_json, "
-        "row_count, elapsed_ms, is_favorite, created_at "
-        "FROM query_history ORDER BY id DESC LIMIT ?",
-        (limit,),
-    ).fetchall()
+    if database_name:
+        rows = conn.execute(
+            "SELECT id, question, sql_text, dialect, columns_json, rows_json, "
+            "row_count, elapsed_ms, is_favorite, created_at, database_name "
+            "FROM query_history WHERE LOWER(database_name) = LOWER(?) ORDER BY id DESC LIMIT ?",
+            (database_name, limit),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT id, question, sql_text, dialect, columns_json, rows_json, "
+            "row_count, elapsed_ms, is_favorite, created_at, database_name "
+            "FROM query_history ORDER BY id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
     conn.close()
 
     result = []
@@ -125,8 +139,11 @@ def delete_entry(entry_id: int) -> bool:
     return deleted
 
 
-def clear_all() -> None:
+def clear_all(database_name: str | None = None) -> None:
     conn = sqlite3.connect(HISTORY_DB_PATH)
-    conn.execute("DELETE FROM query_history")
+    if database_name:
+        conn.execute("DELETE FROM query_history WHERE LOWER(database_name) = LOWER(?)", (database_name,))
+    else:
+        conn.execute("DELETE FROM query_history")
     conn.commit()
     conn.close()

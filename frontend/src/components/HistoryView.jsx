@@ -12,17 +12,17 @@ function timeAgo(isoString) {
   return `${Math.round(hours / 24)} d ago`;
 }
 
-export default function HistoryView({ onSelect, onDelete, onToggleFavorite, onClearAll }) {
+export default function HistoryView({ dbName, onSelect, onDelete, onToggleFavorite, onClearAll }) {
   const [items, setItems] = useState(null);
   const [error, setError] = useState(null);
   const [confirmingClear, setConfirmingClear] = useState(false);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
 
   useEffect(() => {
-    fetchHistory(50)
+    fetchHistory(50, dbName)
       .then((data) => setItems(data.history))
       .catch((err) => setError(err.message));
-  }, []);
+  }, [dbName]);
 
   function handleDelete(id) {
     setItems((prev) => prev.filter((item) => item.id !== id));
@@ -47,13 +47,21 @@ export default function HistoryView({ onSelect, onDelete, onToggleFavorite, onCl
       <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl bg-gradient-to-r from-sqlText via-sqlText/40 to-transparent dark:from-accent dark:via-accent/40" />
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="font-mono text-[34px] font-black text-[#2B2B2B] dark:text-darkText tracking-tight">
-            Recent queries
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="font-mono text-[34px] font-black text-[#2B2B2B] dark:text-darkText tracking-tight">
+              Recent queries
+            </h1>
+            {dbName && (
+              <span className="text-xs bg-primary/10 dark:bg-primary/20 text-primary border border-primary/20 rounded-full px-3 py-1 font-mono font-medium">
+                {dbName}
+              </span>
+            )}
+          </div>
           <p className="text-sm text-[#7a7566] dark:text-darkText/60 mt-1 mb-6">
-            Every question you've asked. Click one to view its results — nothing is re-run.
+            {dbName ? `Questions asked for ${dbName}. Click one to view its results — nothing is re-run.` : "Every question you've asked. Click one to view its results — nothing is re-run."}
           </p>
         </div>
+
 
         {items && items.length > 0 && (
           <div className="shrink-0 pt-1">

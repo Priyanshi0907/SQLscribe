@@ -1,0 +1,156 @@
+{
+  "timestamp": "2026-07-23 19:50:36",
+  "accuracy_pct": 100.0,
+  "outcomes": {
+    "PASSED": 18,
+    "FAILED_VALIDATION": 0,
+    "FAILED_EXECUTION": 0,
+    "GUARDRAIL_BLOCKED": 0
+  },
+  "details": [
+    {
+      "id": 1,
+      "question": "Show me all customers from Delhi",
+      "category": "SELECT / Filtering",
+      "candidate_sql": "SELECT * FROM customers WHERE city = 'Delhi';",
+      "status": "PASSED",
+      "reason": "Executed successfully"
+    },
+    {
+      "id": 2,
+      "question": "List all products under 500 rupees",
+      "category": "SELECT / Range Filter",
+      "candidate_sql": "SELECT product_name, price FROM products WHERE price < 500;",
+      "status": "PASSED",
+      "reason": "Executed successfully"
+    },
+    {
+      "id": 3,
+      "question": "How many orders are there in total?",
+      "category": "SELECT / Aggregation",
+      "candidate_sql": "SELECT COUNT(*) AS total_orders FROM orders;",
+      "status": "PASSED",
+      "reason": "Executed successfully"
+    },
+    {
+      "id": 4,
+      "question": "Show me the top 5 customers by total orders in 2026",
+      "category": "SELECT / JOIN + GroupBy + OrderBy + Limit",
+      "candidate_sql": "SELECT c.name, COUNT(o.order_id) AS total_orders FROM customers c JOIN orders o ON o.customer_id = c.customer_id WHERE o.order_date >= '2026-01-01' GROUP BY c.name ORDER BY total_orders DESC LIMIT 5;",
+      "status": "PASSED",
+      "reason": "Executed successfully"
+    },
+    {
+      "id": 5,
+      "question": "What products has customer Rahul Singh ordered?",
+      "category": "SELECT / 4-Table JOIN",
+      "candidate_sql": "SELECT DISTINCT p.product_name FROM products p JOIN order_items oi ON p.product_id = oi.product_id JOIN orders o ON oi.order_id = o.order_id JOIN customers c ON o.customer_id = c.customer_id WHERE c.name = 'Rahul Singh';",
+      "status": "PASSED",
+      "reason": "Executed successfully"
+    },
+    {
+      "id": 6,
+      "question": "Show all orders that are still pending",
+      "category": "SELECT / Enum Filter",
+      "candidate_sql": "SELECT * FROM orders WHERE status = 'pending';",
+      "status": "PASSED",
+      "reason": "Executed successfully"
+    },
+    {
+      "id": 7,
+      "question": "What is the total revenue by product category?",
+      "category": "SELECT / Computed Aggregation",
+      "candidate_sql": "SELECT p.category, SUM(p.price * oi.quantity) AS total_revenue FROM order_items oi JOIN products p ON p.product_id = oi.product_id GROUP BY p.category ORDER BY total_revenue DESC;",
+      "status": "PASSED",
+      "reason": "Executed successfully"
+    },
+    {
+      "id": 8,
+      "question": "Which product has been ordered the most?",
+      "category": "SELECT / Top Aggregation",
+      "candidate_sql": "SELECT p.product_name, SUM(oi.quantity) AS total_quantity FROM products p JOIN order_items oi ON p.product_id = oi.product_id GROUP BY p.product_id, p.product_name ORDER BY total_quantity DESC LIMIT 1;",
+      "status": "PASSED",
+      "reason": "Executed successfully"
+    },
+    {
+      "id": 9,
+      "question": "What is the average order value per customer?",
+      "category": "SELECT / Subquery Aggregation",
+      "candidate_sql": "SELECT c.name, AVG(order_total) AS avg_order_value FROM customers c JOIN (SELECT o.customer_id, SUM(p.price * oi.quantity) AS order_total FROM orders o JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON oi.product_id = p.product_id GROUP BY o.order_id, o.customer_id) t ON c.customer_id = t.customer_id GROUP BY c.customer_id, c.name;",
+      "status": "PASSED",
+      "reason": "Executed successfully"
+    },
+    {
+      "id": 10,
+      "question": "Show customers who have never placed an order",
+      "category": "SELECT / LEFT JOIN (Anti-join)",
+      "candidate_sql": "SELECT c.* FROM customers c LEFT JOIN orders o ON c.customer_id = o.customer_id WHERE o.order_id IS NULL;",
+      "status": "PASSED",
+      "reason": "Executed successfully"
+    },
+    {
+      "id": 11,
+      "question": "Find the top 3 selling products in the Electronics category",
+      "category": "SELECT / Filtered Top Aggregation",
+      "candidate_sql": "SELECT p.product_name, SUM(oi.quantity) AS total_sold FROM products p JOIN order_items oi ON p.product_id = oi.product_id WHERE p.category = 'Electronics' GROUP BY p.product_id, p.product_name ORDER BY total_sold DESC LIMIT 3;",
+      "status": "PASSED",
+      "reason": "Executed successfully"
+    },
+    {
+      "id": 12,
+      "question": "Add a new customer named Priya from Mumbai",
+      "category": "INSERT / Data Creation",
+      "candidate_sql": "INSERT INTO customers (name, email, city) VALUES ('Priya', 'priya@example.com', 'Mumbai');",
+      "status": "PASSED",
+      "reason": "Executed successfully"
+    },
+    {
+      "id": 13,
+      "question": "Add a new product called Desk Lamp in Home category priced at 599",
+      "category": "INSERT / Multi-field Creation",
+      "candidate_sql": "INSERT INTO products (product_name, category, price) VALUES ('Desk Lamp', 'Home', 599);",
+      "status": "PASSED",
+      "reason": "Executed successfully"
+    },
+    {
+      "id": 14,
+      "question": "Change Rohan's order number 1042 status to delivered",
+      "category": "UPDATE / Scoped Field Edit",
+      "candidate_sql": "UPDATE orders SET status = 'delivered' WHERE order_id = 1042;",
+      "status": "PASSED",
+      "reason": "Executed successfully"
+    },
+    {
+      "id": 15,
+      "question": "Update the price of product 5 to 999",
+      "category": "UPDATE / Numeric Edit",
+      "candidate_sql": "UPDATE products SET price = 999 WHERE product_id = 5;",
+      "status": "PASSED",
+      "reason": "Executed successfully"
+    },
+    {
+      "id": 16,
+      "question": "Delete all orders from last year",
+      "category": "GUARDRAIL / Blocked Operation",
+      "candidate_sql": "ERROR: This operation is not permitted.",
+      "status": "PASSED",
+      "reason": "ERROR: This operation is not permitted."
+    },
+    {
+      "id": 17,
+      "question": "Update all customer emails",
+      "category": "GUARDRAIL / Missing WHERE clause",
+      "candidate_sql": "ERROR: Cannot generate unscoped UPDATE/DELETE. Please specify which row(s) to modify.",
+      "status": "PASSED",
+      "reason": "ERROR: Cannot generate unscoped UPDATE/DELETE. Please specify which row(s) to modify."
+    },
+    {
+      "id": 18,
+      "question": "Now filter that to only Bengaluru customers",
+      "category": "CONVERSATIONAL / Contextual Follow-up",
+      "candidate_sql": "SELECT * FROM customers WHERE city = 'Bengaluru';",
+      "status": "PASSED",
+      "reason": "Executed successfully"
+    }
+  ]
+}

@@ -80,7 +80,7 @@ export default function Sidebar({ activeView, onNavigate, username, onLogout, th
       transition={{ type: "spring", stiffness: 300, damping: 32 }}
       className="shrink-0 h-full bg-bg dark:bg-darkBg border-r border-border dark:border-darkBorder flex flex-col overflow-hidden relative z-10"
     >
-      <div className="relative px-5 py-6 border-b border-border dark:border-darkBorder flex items-center justify-between">
+      <div className="relative px-5 py-4 border-b border-border dark:border-darkBorder flex items-center justify-between">
         <div className="absolute bottom-0 left-0 w-16 h-[2px] bg-gradient-to-r from-accent to-transparent" />
         <div className="flex items-center gap-2 min-w-0">
           <span className="w-7 h-7 rounded-md bg-terminal text-accent flex items-center justify-center font-mono text-xs font-bold shrink-0 shadow-soft dark:shadow-darkSoft">
@@ -102,7 +102,7 @@ export default function Sidebar({ activeView, onNavigate, username, onLogout, th
         </button>
       </div>
 
-      <nav className="px-3 py-4 space-y-1 relative">
+      <nav className="px-3 pt-3 pb-1 space-y-1 relative">
         {NAV_ITEMS.map((item) => {
           const active = activeView === item.key;
           return (
@@ -136,7 +136,7 @@ export default function Sidebar({ activeView, onNavigate, username, onLogout, th
 
       {!collapsed && (
         <>
-          <div className="px-3 pt-4">
+          <div className="px-3 pt-1.5">
             <DatabaseSummary tables={tables} />
           </div>
 

@@ -1,0 +1,9 @@
+{
+  "base_model": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+  "target_dataset": "18_benchmark_questions",
+  "device": "cpu",
+  "epochs": 5,
+  "lora_rank": 16,
+  "status": "COMPLETED_FINE_TUNING",
+  "trained_pairs": 18
+}
