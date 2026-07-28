@@ -306,26 +306,13 @@ sqlscribe/
 
 ---
 
-## 🤝 Contributing & Contributors
+## 👥 Team & Contributors
 
-### ✨ Contributors
+Meet the creators and contributors behind **SQLscribe**:
 
-Special thanks to the contributors of this project:
-
-- 👤 **Khushi Sharma**
-- 👤 **Kunal Chauhan**
-
----
-
-### 💡 How to Contribute
-
-Contributions are welcome! Please follow these steps:
-
-1. **Fork the Repository**
-2. **Create a Feature Branch**: `git checkout -b feature/AmazingFeature`
-3. **Commit your Changes**: `git commit -m 'Add some AmazingFeature'`
-4. **Push to the Branch**: `git push origin feature/AmazingFeature`
-5. **Open a Pull Request**
+- 👩‍💻 **Priyanshi Choudhary** — [@Priyanshi0907](https://github.com/Priyanshi0907)
+- 👩‍💻 **Khushi Sharma** — [Khushi Sharma](https://github.com/KhushiSharma)
+- 👨‍💻 **Kunal Chauhan** — [@Kunal-Chauhan-1858](https://github.com/Kunal-Chauhan-1858)
 
 ---
 
