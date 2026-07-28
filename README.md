@@ -311,7 +311,7 @@ sqlscribe/
 Meet the collaborators behind **SQLscribe**:
 
 - 👩‍💻 **Priyanshi Choudhary** — [@Priyanshi0907](https://github.com/Priyanshi0907)
-- 👩‍💻 **Khushi Sharma** — [Khushi Sharma](https://github.com/KhushiSharma)
+- 👩‍💻 **Khushi Sharma** — [@khushisharma050405](https://github.com/khushisharma050405)
 - 👨‍💻 **Kunal Chauhan** — [@Kunal-Chauhan-1858](https://github.com/Kunal-Chauhan-1858)
 
 ---
