@@ -11,34 +11,9 @@
 
 ---
 
-### 🎨 Paper Terminal Theme Preview
+### 🎨 Paper Terminal Interface
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ ✍️  SQLscribe  [ RetailDB (SQLite) ] [ 🟢 Backend Online ] [ Switch DB... ] │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ 💬 Question: "Show top 5 customers by total order spend"                   │
-│                                                                             │
-│ 💻 Generated & Validated SQL                                                │
-│ ┌─────────────────────────────────────────────────────────────────────────┐ │
-│ │ SELECT c.customer_id, c.name, SUM(o.total_amount) AS total_spend       │ │
-│ │ FROM customers c                                                        │ │
-│ │ JOIN orders o ON c.customer_id = o.customer_id                          │ │
-│ │ GROUP BY c.customer_id, c.name                                          │ │
-│ │ ORDER BY total_spend DESC                                               │ │
-│ │ LIMIT 5                                                                 │ │
-│ └─────────────────────────────────────────────────────────────────────────┘ │
-│                                                                             │
-│ 📊 Results (5 rows, 14ms) [ 📥 Export CSV ]                                │
-│ ┌─────────────┬──────────────────┬──────────────┐                           │
-│ │ customer_id │ name             │ total_spend  │                           │
-│ ├─────────────┼──────────────────┼──────────────┤                           │
-│ │ 104         │ Eleanor Vance    │ 4250.00      │                           │
-│ │ 112         │ Marcus Sterling  │ 3890.50      │                           │
-│ │ 205         │ Sophia Chen      │ 3410.20      │                           │
-│ └─────────────┴──────────────────┴──────────────┘                           │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+![SQLscribe Paper Terminal Interface](docs/paper-terminal-preview.png)
 
 ---
 
@@ -93,12 +68,11 @@ The following diagram illustrates SQLscribe's multi-tiered system architecture, 
 
 ```mermaid
 flowchart TD
-    subgraph Client ["💻 Client Tier (React 18 + Tailwind)"]
+    subgraph Client ["Client Tier (React 18 + Tailwind)"]
         UI["Paper Terminal Web App"]
-        UI_Components["- Data Source Picker<br/>- Query & Terminal Panel<br/>- Results Grid & CSV Export<br/>- Live ER Diagram<br/>- Query History & Favorites"]
     end
 
-    subgraph Hosting ["🚀 FastAPI Backend Service"]
+    subgraph Hosting ["FastAPI Backend Service"]
         API["FastAPI App (Uvicorn Engine)"]
         AuthModule["Auth Module (Bcrypt + Sessions)"]
         SourceModule["Source Introspector & Driver"]
@@ -106,43 +80,36 @@ flowchart TD
         HistoryModule["History Store Manager"]
     end
 
-    subgraph AILayer ["🤖 AI Generation Layer"]
+    subgraph AILayer ["AI Generation Layer"]
         GroqAPI["Groq API (Llama 3.3 70B)"]
     end
 
-    subgraph DataLayer ["🗄️ Active Data Source (Connected DB)"]
+    subgraph DataLayer ["Active Data Source (Connected DB)"]
         DemoDB["Seeded Demo RetailDB (SQLite)"]
         UploadDB["Uploaded SQLite (.db / .sqlite)"]
         PostgresDB["Live PostgreSQL Server"]
         MySQLDB["Live MySQL Server"]
     end
 
-    subgraph InternalStorage ["💾 System Persistence"]
+    subgraph InternalStorage ["System Persistence"]
         AuthDB[("Auth DB (auth.db)")]
         HistDB[("History DB (history.db)")]
     end
 
-    %% Component Data Flows
-    UI -->|HTTP / REST API| API
+    UI -->|"HTTP / REST API"| API
     API --> AuthModule
     AuthModule --> AuthDB
-    
-    API -->|1. Introspect Schema| SourceModule
+    API -->|"1. Introspect Schema"| SourceModule
     SourceModule --> DataLayer
-    
-    API -->|2. Question + Live Schema| GroqAPI
-    GroqAPI -->|3. Generated Raw SQL| API
-    
-    API -->|4. Validate AST & Security| GuardModule
-    GuardModule -->|5. Validated Safe SQL| API
-    
-    API -->|6. Execute Safe Query| DataLayer
-    DataLayer -->|7. Result Sets & Metadata| API
-    
-    API -->|8. Log Execution History| HistoryModule
+    API -->|"2. Question + Live Schema"| GroqAPI
+    GroqAPI -->|"3. Generated Raw SQL"| API
+    API -->|"4. Validate AST & Security"| GuardModule
+    GuardModule -->|"5. Validated Safe SQL"| API
+    API -->|"6. Execute Safe Query"| DataLayer
+    DataLayer -->|"7. Result Sets & Metadata"| API
+    API -->|"8. Log Execution History"| HistoryModule
     HistoryModule --> HistDB
-    
-    API -->|9. JSON Response (SQL, Data, ER)| UI
+    API -->|"9. JSON Response"| UI
 ```
 
 ### Architectural Component Breakdown
@@ -291,6 +258,9 @@ sqlscribe/
 │   ├── data/                # System databases (auth.db, history.db, demo database)
 │   ├── requirements.txt     # Python backend dependencies
 │   └── .env.example         # Environment template for Groq API key
+│
+├── docs/
+│   └── paper-terminal-preview.png # Paper Terminal UI screenshot
 │
 └── frontend/
     ├── src/
