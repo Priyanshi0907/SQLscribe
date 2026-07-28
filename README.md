@@ -11,9 +11,17 @@
 
 ---
 
-### 🎨 Paper Terminal Interface
+### 📸 Application Walkthrough
 
-![SQLscribe Paper Terminal Interface](docs/paper-terminal-preview.png)
+| 🔐 Authentication & Security | 🔌 Hot-Swappable Data Sources |
+| :---: | :---: |
+| ![Authentication Screen](docs/auth-screen.png) | ![Data Source Picker](docs/datasource-picker.png) |
+
+<br/>
+
+| ✍️ Paper Terminal Query Interface |
+| :---: |
+| ![SQLscribe Paper Terminal Interface](docs/paper-terminal-preview.png) |
 
 ---
 
@@ -46,19 +54,19 @@ SQLscribe introduces a **Human-in-the-Loop, Guardrailed AI Architecture**:
 
 ## ✨ Features
 
-- 🔌 **Hot-Swappable Data Sources**:
+- **Hot-Swappable Data Sources**:
   - **Seeded Demo Database**: Instant setup with an e-commerce RetailDB schema (`customers`, `products`, `orders`, `order_items`).
   - **SQLite File Upload**: Upload any custom `.db` / `.sqlite` file for automatic schema parsing.
   - **Local SQLite Path**: Connect directly to any local SQLite file path.
   - **Live PostgreSQL Server**: Connect directly to remote or local PostgreSQL instances.
   - **Live MySQL Server**: Connect directly to remote or local MySQL instances.
-- 🤖 **Groq Llama 3.3 70B Engine**: Sub-second natural language translation tuned specifically for SQL generation.
-- 🛡️ **SQL Guard Safety System**: AST-based validation preventing multi-statement execution, comments, unknown table references, and unwanted mutations.
-- 🎨 **Paper Terminal Interface**: Minimalist warm paper backdrop (`#FAF7F1`) paired with a high-contrast dark terminal window (`#2B2B2B`) for crisp SQL code visibility.
-- 📊 **Interactive Results Grid**: Automatic column deduplication, row-capping (500 max rows protection), and instant CSV data export.
-- 🗺️ **Live ER Diagram Generator**: Interactive, dynamically computed entity-relationship visualizer built from live schema introspection.
-- 📜 **Execution History & Favorites**: Persisted query history per database, favorite query bookmarking, and one-click query re-run.
-- 🔐 **Token Authentication**: Built-in signup, login, and bearer-token session protection powered by bcrypt password hashing.
+- **Groq Llama 3.3 70B Engine**: Sub-second natural language translation tuned specifically for SQL generation.
+- **SQL Guard Safety System**: AST-based validation preventing multi-statement execution, comments, unknown table references, and unwanted mutations.
+- **Paper Terminal Interface**: Minimalist warm paper backdrop (`#FAF7F1`) paired with a high-contrast dark terminal window (`#2B2B2B`) for crisp SQL code visibility.
+- **Interactive Results Grid**: Automatic column deduplication, row-capping (500 max rows protection), and instant CSV data export.
+- **Live ER Diagram Generator**: Interactive, dynamically computed entity-relationship visualizer built from live schema introspection.
+- **Execution History & Favorites**: Persisted query history per database, favorite query bookmarking, and one-click query re-run.
+- **Token Authentication**: Built-in signup, login, and bearer-token session protection powered by bcrypt password hashing.
 
 ---
 
@@ -260,7 +268,9 @@ sqlscribe/
 │   └── .env.example         # Environment template for Groq API key
 │
 ├── docs/
-│   └── paper-terminal-preview.png # Paper Terminal UI screenshot
+│   ├── auth-screen.png           # User authentication & security screen
+│   ├── datasource-picker.png     # Data source selection screen
+│   └── paper-terminal-preview.png # Main Paper Terminal query screen
 │
 └── frontend/
     ├── src/
@@ -288,15 +298,26 @@ sqlscribe/
 
 ## 🔮 Future Enhancements
 
-- 👤 **Per-User Database Connections**: Isolate active database sessions per user session token rather than process-wide global state.
-- ✍️ **Controlled Write Operations**: Interactive confirmation dialogs for safe `INSERT` / `UPDATE` queries with enforced `WHERE` clause checks.
-- 📈 **Automated Chart Generation**: Built-in charting (Bar charts, Line graphs, Pie charts) powered by Recharts/Chart.js for numeric query results.
-- 💡 **AI Response Insights**: Generative text summaries explaining the data insights alongside raw query table output.
-- ⚡ **EXPLAIN ANALYZE Integration**: Visual query execution plan and performance optimization recommendations.
+- **Per-User Database Connections**: Isolate active database sessions per user session token rather than process-wide global state.
+- **Controlled Write Operations**: Interactive confirmation dialogs for safe `INSERT` / `UPDATE` queries with enforced `WHERE` clause checks.
+- **Automated Chart Generation**: Built-in charting (Bar charts, Line graphs, Pie charts) powered by Recharts/Chart.js for numeric query results.
+- **AI Response Insights**: Generative text summaries explaining the data insights alongside raw query table output.
+- **EXPLAIN ANALYZE Integration**: Visual query execution plan and performance optimization recommendations.
 
 ---
 
-## 🤝 Contributing
+## 🤝 Contributing & Contributors
+
+### ✨ Contributors
+
+Special thanks to the contributors of this project:
+
+- 👤 **Khushi Sharma**
+- 👤 **Kunal Chauhan**
+
+---
+
+### 💡 How to Contribute
 
 Contributions are welcome! Please follow these steps:
 
