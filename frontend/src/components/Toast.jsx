@@ -39,6 +39,8 @@ export function ToastProvider({ children }) {
               <motion.div
                 key={t.id}
                 layout
+                role="status"
+                aria-live="polite"
                 initial={{ opacity: 0, y: 12, scale: 0.96 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, x: 40, transition: { duration: 0.15 } }}

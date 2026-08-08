@@ -48,7 +48,7 @@ function DatabaseSummary({ tables }) {
   );
 }
 
-export default function Sidebar({ activeView, onNavigate, username, onLogout, theme, onToggleTheme }) {
+export default function Sidebar({ activeView, onNavigate, username, onLogout, theme, onToggleTheme, schemaVersion }) {
   const [tables, setTables] = useState([]);
   const [expanded, setExpanded] = useState({});
   const [error, setError] = useState(null);
@@ -56,11 +56,17 @@ export default function Sidebar({ activeView, onNavigate, username, onLogout, th
   const [collapsed, setCollapsed] = useState(false);
   const menuRef = useRef(null);
 
+  // Re-fetch whenever schemaVersion changes (bumped in App.jsx after every
+  // query execution) so a DROP/CREATE/ALTER or row-changing DML is reflected
+  // here right away, not just on next page load.
   useEffect(() => {
     fetchSchema()
-      .then((data) => setTables(data.tables))
+      .then((data) => {
+        setTables(data.tables);
+        setError(null);
+      })
       .catch((err) => setError(err.message));
-  }, []);
+  }, [schemaVersion]);
 
   useEffect(() => {
     function handleClickOutside(e) {

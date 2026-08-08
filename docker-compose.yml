@@ -1,0 +1,37 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY:?Set GROQ_API_KEY in a .env file next to this docker-compose.yml — see backend/.env.example}
+      - SQLSCRIBE_MODEL=${SQLSCRIBE_MODEL:-llama-3.3-70b-versatile}
+    volumes:
+      # Persists auth.db, history.db, schema_meta.db, the seeded demo
+      # database, and any uploaded/local SQLite files across restarts.
+      - sqlscribe-data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Browser JS calls this directly, so it must be reachable from
+        # wherever the browser runs — not the backend's in-network
+        # service name. Override in .env for anything beyond local use.
+        VITE_API_BASE: ${VITE_API_BASE:-http://localhost:8000}
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  sqlscribe-data:

@@ -2,22 +2,28 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { fetchSchema } from "../lib/api";
 import ERDiagram from "./ERDiagram";
+import TableDescriptions from "./TableDescriptions";
 
-export default function SchemaView() {
+export default function SchemaView({ schemaVersion }) {
   const [tables, setTables] = useState(null);
   const [dbName, setDbName] = useState("");
   const [error, setError] = useState(null);
 
+  // Re-fetch whenever schemaVersion changes (bumped in App.jsx after every
+  // query execution), not just once on mount — otherwise this view can show
+  // a table that a DROP/CREATE already removed/added from the real database.
   useEffect(() => {
     fetchSchema()
       .then((data) => {
         setTables(data.tables);
         setDbName(data.database);
+        setError(null);
       })
       .catch((err) => setError(err.message));
-  }, []);
+  }, [schemaVersion]);
 
   return (
+    <>
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
@@ -65,5 +71,8 @@ export default function SchemaView() {
         )}
       </div>
     </motion.div>
+
+    {tables && <TableDescriptions tables={tables} schemaVersion={schemaVersion} />}
+    </>
   );
 }

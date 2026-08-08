@@ -150,11 +150,84 @@ export async function fetchSchema() {
   return handleResponse(res);
 }
 
+// ---------------------------------------------------------------------------
+// Table descriptions ("meta table") — LLM-generated, per-table
+// descriptions that enrich both the Schema tab UI and the prompt context
+// sent to the model for SQL generation.
+// ---------------------------------------------------------------------------
+
+export async function fetchTableDescriptions() {
+  const res = await fetch(`${API_BASE}/api/schema/descriptions`, { headers: authHeaders() });
+  return handleResponse(res);
+}
+
+export async function generateTableDescriptions(overwriteCustom = false) {
+  const query = overwriteCustom ? "?overwrite_custom=true" : "";
+  const res = await fetch(`${API_BASE}/api/schema/descriptions/generate${query}`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  return handleResponse(res);
+}
+
+export async function setTableDescription(tableName, description) {
+  const res = await fetch(`${API_BASE}/api/schema/descriptions/${encodeURIComponent(tableName)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ description }),
+  });
+  return handleResponse(res);
+}
+
+export async function clearTableDescription(tableName) {
+  const res = await fetch(`${API_BASE}/api/schema/descriptions/${encodeURIComponent(tableName)}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  return handleResponse(res);
+}
+
+export async function setColumnDescription(tableName, columnName, description) {
+  const res = await fetch(
+    `${API_BASE}/api/schema/descriptions/${encodeURIComponent(tableName)}/columns/${encodeURIComponent(columnName)}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ description }),
+    }
+  );
+  return handleResponse(res);
+}
+
+export async function clearColumnDescription(tableName, columnName) {
+  const res = await fetch(
+    `${API_BASE}/api/schema/descriptions/${encodeURIComponent(tableName)}/columns/${encodeURIComponent(columnName)}`,
+    {
+      method: "DELETE",
+      headers: authHeaders(),
+    }
+  );
+  return handleResponse(res);
+}
+
+
 export async function runQuery(question) {
   const res = await fetch(`${API_BASE}/api/query`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ question }),
+  });
+  return handleResponse(res);
+}
+
+// Executes a write query (INSERT/UPDATE/DELETE/DDL) the user has already
+// reviewed and explicitly confirmed. Only called after runQuery() comes
+// back with pending_confirmation: true — never on the initial ask.
+export async function confirmQuery(question, sql) {
+  const res = await fetch(`${API_BASE}/api/query/confirm`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ question, sql }),
   });
   return handleResponse(res);
 }

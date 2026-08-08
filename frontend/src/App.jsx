@@ -7,11 +7,15 @@ import QueryHistory from "./components/QueryHistory";
 import SchemaView from "./components/SchemaView";
 import HistoryView from "./components/HistoryView";
 import DataSourceLanding from "./components/DataSourceLanding";
+import MetaTableReview from "./components/MetaTableReview";
+import DatabasePrepLoading from "./components/DatabasePrepLoading";
+import ErrorBoundary from "./components/ErrorBoundary";
 import AuthScreen from "./components/AuthScreen";
+import ConfirmWriteModal from "./components/ConfirmWriteModal";
 import { useToast } from "./components/Toast";
 import { useTheme } from "./lib/useTheme";
 import {
-  runQuery, fetchHistory, deleteHistoryEntry, clearHistory as apiClearHistory,
+  runQuery, confirmQuery, fetchHistory, deleteHistoryEntry, clearHistory as apiClearHistory,
   setHistoryFavorite, fetchSource, disconnectSource, fetchMe, getToken, clearToken,
   logout as apiLogout,
 } from "./lib/api";
@@ -36,6 +40,13 @@ export default function App() {
 
   const [checkingSource, setCheckingSource] = useState(false);
   const [source, setSource] = useState(null); // { type, name, dialect } | null
+  // True for the span between a fresh connect (demo/upload/live DB) and
+  // the user clicking through the meta-table description review screen.
+  // Only fresh connects show this — reattaching to an already-connected
+  // source on page reload (see the fetchSource effect below) skips
+  // straight to the dashboard, same as it always did.
+  const [awaitingMetaReview, setAwaitingMetaReview] = useState(false);
+  const [prepLoading, setPrepLoading] = useState(false);
 
   const [activeView, setActiveView] = useState("new");
   const [result, setResult] = useState(null);
@@ -44,6 +55,14 @@ export default function App() {
   const [history, setHistory] = useState([]);
   const [pendingQuestion, setPendingQuestion] = useState(null);
   const [sessionKey, setSessionKey] = useState(0);
+  // A generated INSERT/UPDATE/DELETE/DDL statement waiting on an explicit
+  // user confirmation before it's executed — { question, sql, dialect } | null.
+  const [pendingWrite, setPendingWrite] = useState(null);
+  // Bumped every time a query actually executes (read or write). Sidebar and
+  // SchemaView both key their schema fetch off this so a DROP/CREATE/ALTER
+  // (or any DML that changes row counts) is reflected immediately, instead
+  // of only refreshing on the next full page load.
+  const [schemaVersion, setSchemaVersion] = useState(0);
 
   // On load, check whether we already have a valid session (e.g. the user
   // refreshed the page) so we don't force a re-login unnecessarily.
@@ -100,8 +119,16 @@ export default function App() {
   async function handleRun(question) {
     setLoading(true);
     setError(null);
+    setPendingWrite(null);
     try {
       const data = await runQuery(question);
+      if (data.pending_confirmation) {
+        // A write query was generated and validated, but nothing has run
+        // yet — show it to the user and wait for an explicit confirm.
+        setResult(data);
+        setPendingWrite({ question, sql: data.sql, dialect: data.dialect });
+        return;
+      }
       setResult(data);
       if (data.truncated) {
         showToast(
@@ -111,6 +138,7 @@ export default function App() {
         );
       }
       loadHistory(); // this run created exactly one new, real history entry
+      setSchemaVersion((v) => v + 1); // schema/row counts may have changed — refetch
     } catch (err) {
       if (err.status === 401) return handleSessionExpired();
       setError(err.message);
@@ -121,12 +149,37 @@ export default function App() {
     }
   }
 
+  async function handleConfirmWrite() {
+    if (!pendingWrite) return;
+    try {
+      const data = await confirmQuery(pendingWrite.question, pendingWrite.sql);
+      setResult(data);
+      setPendingWrite(null);
+      showToast("Query executed successfully.", "success");
+      loadHistory();
+      setSchemaVersion((v) => v + 1); // this is the path DDL/DML writes actually run through
+    } catch (err) {
+      if (err.status === 401) return handleSessionExpired();
+      setPendingWrite(null);
+      setError(err.message);
+      showToast(err.message, "error");
+    }
+  }
+
+  function handleCancelWrite() {
+    // Nothing was ever executed — just drop the pending statement and let
+    // the user try a different question.
+    setPendingWrite(null);
+    showToast("Query cancelled — nothing was changed.", "info");
+  }
+
   function handleNavigate(view) {
     if (view === "new") {
       // "New Query" always starts a fresh session, even if you're
       // already on this tab — clears the question, SQL, and results.
       setResult(null);
       setError(null);
+      setPendingWrite(null);
       setPendingQuestion("");
       setSessionKey((k) => k + 1);
     }
@@ -137,6 +190,7 @@ export default function App() {
   // no API call, no new history entry. Nothing is re-run.
   function handleViewHistoryItem(item) {
     setPendingQuestion(item.question);
+    setPendingWrite(null);
     setResult({
       sql: item.sql_text,
       columns: item.columns,
@@ -211,8 +265,10 @@ export default function App() {
     setUsername(null);
     setFreshAuth(false);
     setSource(null);
+    setAwaitingMetaReview(false);
     setResult(null);
     setError(null);
+    setPendingWrite(null);
     setHistory([]);
     setActiveView("new");
   }
@@ -220,12 +276,19 @@ export default function App() {
   function handleConnected(info) {
     setSource(info);
     setFreshAuth(false); // the picker's job is done for this session
+    setPrepLoading(true); // show the 5s database prep loading screen on simple background
+    setAwaitingMetaReview(true); // show the description review modal over dashboard after prep
+  }
+
+  function handleContinueFromMetaReview() {
+    setAwaitingMetaReview(false);
     setResult(null);
     setError(null);
+    setPendingWrite(null);
     setPendingQuestion("");
     setSessionKey((k) => k + 1);
     setActiveView("new");
-    showToast(`Connected to ${info.name}.`, "success");
+    showToast(`Connected to ${source?.name}.`, "success");
   }
 
   async function handleSwitchDatabase() {
@@ -236,8 +299,11 @@ export default function App() {
       // screen locally — the next connect call will overwrite state anyway
     }
     setSource(null);
+    setAwaitingMetaReview(false);
+    setPrepLoading(false);
     setResult(null);
     setError(null);
+    setPendingWrite(null);
     setHistory([]);
   }
 
@@ -246,6 +312,7 @@ export default function App() {
     if (!username) screenKey = "auth";
     else if (checkingSource) screenKey = "loading";
     else if (!source) screenKey = "landing";
+    else if (prepLoading) screenKey = "prepLoading";
     else screenKey = "dashboard";
   }
 
@@ -276,6 +343,12 @@ export default function App() {
         </motion.div>
       )}
 
+      {screenKey === "prepLoading" && (
+        <motion.div key="prepLoading" variants={screenVariants} initial="initial" animate="animate" exit="exit">
+          <DatabasePrepLoading dbName={source?.name} onComplete={() => setPrepLoading(false)} />
+        </motion.div>
+      )}
+
       {screenKey === "dashboard" && (
         <motion.div
           key="dashboard"
@@ -292,49 +365,66 @@ export default function App() {
             onLogout={handleLogout}
             theme={theme}
             onToggleTheme={toggleTheme}
+            schemaVersion={schemaVersion}
           />
 
           <main className="flex-1 overflow-y-auto p-8">
             <div className="max-w-[1400px] mx-auto">
-              {activeView === "schema" && <SchemaView />}
+              <ErrorBoundary>
+                {activeView === "schema" && <SchemaView schemaVersion={schemaVersion} />}
 
-              {activeView === "history" && (
-                <HistoryView
-                  dbName={source?.name}
-                  onSelect={handleViewHistoryItem}
-                  onDelete={handleDeleteHistoryItem}
-                  onToggleFavorite={handleToggleFavorite}
-                  onClearAll={handleClearHistory}
-                />
-              )}
-
-              {activeView === "new" && (
-                <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-6">
-                  <QueryPanel
-                    key={sessionKey}
-                    onRun={handleRun}
-                    loading={loading}
-                    result={result}
-                    error={error}
-                    dbName={source.name}
-                    onSwitchDatabase={handleSwitchDatabase}
-                    initialQuestion={pendingQuestion}
+                {activeView === "history" && (
+                  <HistoryView
+                    dbName={source?.name}
+                    onSelect={handleViewHistoryItem}
+                    onDelete={handleDeleteHistoryItem}
+                    onToggleFavorite={handleToggleFavorite}
+                    onClearAll={handleClearHistory}
                   />
-                  <ResultsPanel result={result} loading={loading} error={error} />
+                )}
 
-                  <div className="lg:col-span-2">
-                    <QueryHistory
-                      items={history}
-                      onSelect={handleViewHistoryItem}
-                      onDelete={handleDeleteHistoryItem}
-                      onToggleFavorite={handleToggleFavorite}
-                      onViewAll={() => setActiveView("history")}
+                {activeView === "new" && (
+                  <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-6">
+                    <QueryPanel
+                      key={sessionKey}
+                      onRun={handleRun}
+                      loading={loading}
+                      result={result}
+                      error={error}
+                      dbName={source.name}
+                      onSwitchDatabase={handleSwitchDatabase}
+                      initialQuestion={pendingQuestion}
                     />
+                    <ResultsPanel result={result} loading={loading} error={error} />
+
+                    <div className="lg:col-span-2">
+                      <QueryHistory
+                        items={history}
+                        onSelect={handleViewHistoryItem}
+                        onDelete={handleDeleteHistoryItem}
+                        onToggleFavorite={handleToggleFavorite}
+                        onViewAll={() => setActiveView("history")}
+                      />
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </ErrorBoundary>
             </div>
           </main>
+
+          <ConfirmWriteModal
+            open={!!pendingWrite}
+            sql={pendingWrite?.sql}
+            dialect={pendingWrite?.dialect}
+            onConfirm={handleConfirmWrite}
+            onCancel={handleCancelWrite}
+          />
+
+          <MetaTableReview
+            isOpen={awaitingMetaReview}
+            dbName={source?.name}
+            onContinue={handleContinueFromMetaReview}
+          />
         </motion.div>
       )}
     </AnimatePresence>

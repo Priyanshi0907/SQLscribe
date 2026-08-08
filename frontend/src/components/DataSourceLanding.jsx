@@ -195,13 +195,21 @@ export default function DataSourceLanding({ onConnected }) {
 
                 <form onSubmit={handleConnectSubmit} className="space-y-2.5">
                   {engine === "sqlite" ? (
-                    <Field
-                      label="File path on the server"
-                      value={sqlitePath}
-                      onChange={setSqlitePath}
-                      placeholder="/path/to/database.sqlite"
-                      required
-                    />
+                    <div>
+                      <Field
+                        label="Filename in backend/data/local_sources/"
+                        value={sqlitePath}
+                        onChange={setSqlitePath}
+                        placeholder="database.sqlite"
+                        required
+                      />
+                      <p className="text-[11px] text-[#a39d8a] dark:text-darkText/40 mt-1.5">
+                        For safety, this only looks inside the server's
+                        local_sources folder — drop your file there first.
+                        Prefer picking a file from your own computer? Use
+                        "Upload SQLite Database" instead.
+                      </p>
+                    </div>
                   ) : (
                     <>
                       <div className="grid grid-cols-[1fr_100px] gap-2.5">

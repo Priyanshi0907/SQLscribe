@@ -23,6 +23,7 @@ HISTORY_DB_PATH = Path(__file__).resolve().parent.parent / "data" / "history.db"
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS query_history (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    username      TEXT NOT NULL DEFAULT '',
     question      TEXT NOT NULL,
     sql_text      TEXT NOT NULL,
     dialect       TEXT NOT NULL DEFAULT 'SQLite',
@@ -45,6 +46,14 @@ _MIGRATION_COLUMNS = [
     ("rows_json", "TEXT NOT NULL DEFAULT '[]'"),
     ("is_favorite", "INTEGER NOT NULL DEFAULT 0"),
     ("database_name", "TEXT NOT NULL DEFAULT ''"),
+    # Added when history moved from "one global list" to per-user history.
+    # Auth already gated every history endpoint before this, but nothing
+    # actually scoped the rows themselves — any signed-in user could see,
+    # favorite, or delete any other user's entries. Existing rows from
+    # before this migration have no way to know who ran them, so they're
+    # left with username = '' rather than guessed at; they simply won't
+    # show up for anyone once the queries below start filtering by user.
+    ("username", "TEXT NOT NULL DEFAULT ''"),
 ]
 
 
@@ -64,6 +73,7 @@ def init_history_db() -> None:
 
 
 def record(
+    username: str,
     question: str, sql_text: str, dialect: str,
     columns: list[str], rows: list[dict],
     row_count: int, elapsed_ms: int,
@@ -72,10 +82,10 @@ def record(
     conn = sqlite3.connect(HISTORY_DB_PATH)
     cur = conn.execute(
         "INSERT INTO query_history "
-        "(question, sql_text, dialect, columns_json, rows_json, row_count, elapsed_ms, created_at, database_name) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "(username, question, sql_text, dialect, columns_json, rows_json, row_count, elapsed_ms, created_at, database_name) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
-            question, sql_text, dialect,
+            username, question, sql_text, dialect,
             json.dumps(columns), json.dumps(rows, default=str),
             row_count, elapsed_ms, datetime.now(timezone.utc).isoformat(),
             database_name,
@@ -87,22 +97,23 @@ def record(
     return new_id
 
 
-def recent(limit: int = 10, database_name: str | None = None) -> list[dict]:
+def recent(username: str, limit: int = 10, database_name: str | None = None) -> list[dict]:
     conn = sqlite3.connect(HISTORY_DB_PATH)
     conn.row_factory = sqlite3.Row
     if database_name:
         rows = conn.execute(
             "SELECT id, question, sql_text, dialect, columns_json, rows_json, "
             "row_count, elapsed_ms, is_favorite, created_at, database_name "
-            "FROM query_history WHERE LOWER(database_name) = LOWER(?) ORDER BY id DESC LIMIT ?",
-            (database_name, limit),
+            "FROM query_history WHERE username = ? AND LOWER(database_name) = LOWER(?) "
+            "ORDER BY id DESC LIMIT ?",
+            (username, database_name, limit),
         ).fetchall()
     else:
         rows = conn.execute(
             "SELECT id, question, sql_text, dialect, columns_json, rows_json, "
             "row_count, elapsed_ms, is_favorite, created_at, database_name "
-            "FROM query_history ORDER BY id DESC LIMIT ?",
-            (limit,),
+            "FROM query_history WHERE username = ? ORDER BY id DESC LIMIT ?",
+            (username, limit),
         ).fetchall()
     conn.close()
 
@@ -116,13 +127,15 @@ def recent(limit: int = 10, database_name: str | None = None) -> list[dict]:
     return result
 
 
-def set_favorite(entry_id: int, is_favorite: bool) -> bool:
-    """Flip the pinned/favorite flag on one entry. Returns False if no
-    entry with that id exists (caller turns that into a 404)."""
+def set_favorite(username: str, entry_id: int, is_favorite: bool) -> bool:
+    """Flip the pinned/favorite flag on one entry. Scoped to the owning
+    user — someone else's entry id is treated exactly like a
+    non-existent one. Returns False either way, which the caller turns
+    into a 404 (not a 403, so a guessed id doesn't confirm it exists)."""
     conn = sqlite3.connect(HISTORY_DB_PATH)
     cur = conn.execute(
-        "UPDATE query_history SET is_favorite = ? WHERE id = ?",
-        (1 if is_favorite else 0, entry_id),
+        "UPDATE query_history SET is_favorite = ? WHERE id = ? AND username = ?",
+        (1 if is_favorite else 0, entry_id, username),
     )
     conn.commit()
     updated = cur.rowcount > 0
@@ -130,20 +143,25 @@ def set_favorite(entry_id: int, is_favorite: bool) -> bool:
     return updated
 
 
-def delete_entry(entry_id: int) -> bool:
+def delete_entry(username: str, entry_id: int) -> bool:
     conn = sqlite3.connect(HISTORY_DB_PATH)
-    cur = conn.execute("DELETE FROM query_history WHERE id = ?", (entry_id,))
+    cur = conn.execute(
+        "DELETE FROM query_history WHERE id = ? AND username = ?", (entry_id, username)
+    )
     conn.commit()
     deleted = cur.rowcount > 0
     conn.close()
     return deleted
 
 
-def clear_all(database_name: str | None = None) -> None:
+def clear_all(username: str, database_name: str | None = None) -> None:
     conn = sqlite3.connect(HISTORY_DB_PATH)
     if database_name:
-        conn.execute("DELETE FROM query_history WHERE LOWER(database_name) = LOWER(?)", (database_name,))
+        conn.execute(
+            "DELETE FROM query_history WHERE username = ? AND LOWER(database_name) = LOWER(?)",
+            (username, database_name),
+        )
     else:
-        conn.execute("DELETE FROM query_history")
+        conn.execute("DELETE FROM query_history WHERE username = ?", (username,))
     conn.commit()
     conn.close()

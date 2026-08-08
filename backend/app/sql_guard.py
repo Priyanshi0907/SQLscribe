@@ -27,6 +27,45 @@ class SQLValidationError(Exception):
         super().__init__(self.message)
 
 
+def _is_trivially_true(condition: exp.Expression) -> bool:
+    """Catches the laziest ways to satisfy 'has a WHERE clause' without
+    actually scoping anything — WHERE TRUE, WHERE 1=1, WHERE 'a'='a'."""
+    if isinstance(condition, exp.Boolean) and condition.this is True:
+        return True
+    if isinstance(condition, exp.EQ):
+        left, right = condition.left, condition.right
+        if isinstance(left, exp.Literal) and isinstance(right, exp.Literal):
+            return str(left.this) == str(right.this)
+    return False
+
+
+def _require_where_clause(parsed: exp.Expression) -> None:
+    """UPDATE and DELETE must scope themselves to specific rows. This
+    check is join-aware: a query filtered entirely through a JOIN ON
+    condition (no WHERE at all) is just as capable of touching every row
+    as one with no filter whatsoever, so the WHERE clause itself — not
+    just 'the query looks complicated' — is what we require. Table
+    references inside JOINs are still validated separately against the
+    live schema by the caller, whether or not this check fires."""
+    where = parsed.args.get("where")
+    if where is None:
+        kind = "DELETE" if isinstance(parsed, exp.Delete) else "UPDATE"
+        raise SQLValidationError(
+            f"{kind} statements must include a WHERE clause that identifies "
+            f"specific rows. A statement with no WHERE clause would affect "
+            f"every row in the table, so it's blocked before it ever reaches "
+            f"the confirmation step."
+        )
+    if _is_trivially_true(where.this):
+        kind = "DELETE" if isinstance(parsed, exp.Delete) else "UPDATE"
+        raise SQLValidationError(
+            f"{kind} statement's WHERE clause doesn't actually filter "
+            f"anything (it's always true), which has the same effect as no "
+            f"WHERE clause at all. Ask for a query that filters on specific "
+            f"column values instead."
+        )
+
+
 def validate_sql(sql_text: str, allowed_tables: set[str], dialect: str = "sqlite") -> tuple[str, bool]:
     """
     Validate and normalize a generated SQL string against the live schema.
@@ -57,6 +96,12 @@ def validate_sql(sql_text: str, allowed_tables: set[str], dialect: str = "sqlite
     # Determine read-only status
     is_read_only = isinstance(parsed, exp.Select)
 
+    # UPDATE/DELETE must be scoped to specific rows — checked before table
+    # validation so the WHERE-clause error takes priority over an unknown-table
+    # error when a query has both problems.
+    if isinstance(parsed, (exp.Update, exp.Delete)):
+        _require_where_clause(parsed)
+
     # Table validation
     if allowed_tables:
         allowed_lower = {t.lower() for t in allowed_tables}
@@ -75,6 +120,10 @@ def validate_sql(sql_text: str, allowed_tables: set[str], dialect: str = "sqlite
             if cte.alias:
                 cte_names.add(cte.alias.lower())
 
+        # find_all(exp.Table) walks the entire parse tree, which already
+        # covers every table pulled in through a JOIN — an UPDATE/DELETE
+        # that joins against a table outside the connected schema is
+        # rejected here exactly the same way a bare SELECT would be.
         referenced_tables = {t.name.lower() for t in parsed.find_all(exp.Table) if t.name}
         unknown = referenced_tables - allowed_lower - cte_names
         if unknown:

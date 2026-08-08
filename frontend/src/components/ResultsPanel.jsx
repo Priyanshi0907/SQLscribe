@@ -81,13 +81,16 @@ export default function ResultsPanel({ result, loading, error }) {
         <p className="text-[14px] font-extrabold tracking-wide text-sqlText dark:text-accent">
           RESULTS
         </p>
-        {result && !error && (
+        {result && !result.pending_confirmation && !error && (
           <div className="flex items-center gap-3 text-[11px] text-[#8a8574] dark:text-darkText/50">
             <span className="flex items-center gap-1 text-primary">
               ✓ {result.row_count} rows returned
             </span>
             <span>⏱ {result.elapsed_ms} ms</span>
           </div>
+        )}
+        {result?.pending_confirmation && !error && (
+          <span className="text-[11px] text-accent flex items-center gap-1">⚠ Awaiting confirmation</span>
         )}
       </div>
 
@@ -126,7 +129,20 @@ export default function ResultsPanel({ result, loading, error }) {
             {error}
           </div>
         )}
-        {result && !error && (
+        {result?.pending_confirmation && !error && (
+          <div className="h-full min-h-[220px] flex flex-col items-center justify-center text-center px-6 py-8">
+            <span className="w-12 h-12 rounded-full bg-accent/10 dark:bg-accent/20 flex items-center justify-center text-xl mb-3">
+              ⚠
+            </span>
+            <p className="text-sm font-medium text-[#5A5650] dark:text-darkText/80 mb-1">
+              Waiting for confirmation.
+            </p>
+            <p className="text-xs text-[#a39d8a] dark:text-darkText/40 max-w-[240px]">
+              This query writes to your database. Review it in the dialog and confirm before it runs.
+            </p>
+          </div>
+        )}
+        {result && !result.pending_confirmation && !error && (
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-bg dark:bg-darkBg border-b border-border dark:border-darkBorder sticky top-0 z-10 shadow-[0_1px_0_rgba(0,0,0,0.02)]">
