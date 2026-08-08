@@ -19,9 +19,9 @@
 
 <br/>
 
-| 🗺️ Entity Relationship Diagram | 📋 Table & Schema Descriptions |
+| 📋 Table & Schema Descriptions | 🗺️ Entity Relationship Diagram |
 | :---: | :---: |
-| ![ER Diagram Visualizer](docs/er-diagram.png) | ![Table & Schema Descriptions](docs/table-description.png) |
+| ![Table & Schema Descriptions](docs/table-description.png) | ![ER Diagram Visualizer](docs/er-diagram.png) |
 
 <br/>
 
