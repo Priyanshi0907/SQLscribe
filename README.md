@@ -19,9 +19,17 @@
 
 <br/>
 
+| 🗺️ Entity Relationship Diagram | 📋 Table & Schema Descriptions |
+| :---: | :---: |
+| ![ER Diagram Visualizer](docs/er-diagram.png) | ![Table & Schema Descriptions](docs/table-description.png) |
+
+<br/>
+
 | ✍️ Paper Terminal Query Interface |
 | :---: |
 | ![SQLscribe Paper Terminal Interface](docs/paper-terminal-preview.png) |
+
+<br/>
 
 ---
 
@@ -270,7 +278,9 @@ sqlscribe/
 ├── docs/
 │   ├── auth-screen.png           # User authentication & security screen
 │   ├── datasource-picker.png     # Data source selection screen
-│   └── paper-terminal-preview.png # Main Paper Terminal query screen
+│   ├── er-diagram.png            # Interactive entity-relationship diagram screen
+│   ├── paper-terminal-preview.png # Main Paper Terminal query interface screen
+│   └── table-description.png     # AI schema & table descriptions modal screen
 │
 └── frontend/
     ├── src/
